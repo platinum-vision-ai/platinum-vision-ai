@@ -18,14 +18,22 @@ st.set_page_config(
 )
 st.markdown("""
 <style>
-/* 上のメニュー（Forkとか）消す */
+
+/* 上のヘッダー消す */
 header {visibility: hidden;}
 
-/* 下の「Hosted with Streamlit」消す */
+/* フッター消す */
 footer {visibility: hidden;}
 
-/* 右下のロゴ消す */
-.stDeployButton {display:none;}
+/* Streamlitのメニュー系 */
+[data-testid="stToolbar"] {display: none;}
+[data-testid="stDecoration"] {display: none;}
+[data-testid="stStatusWidget"] {display: none;}
+[data-testid="stDeployButton"] {display: none;}
+
+/* 右下の「Hosted with Streamlit」完全消去 */
+iframe {display: none !important;}
+
 </style>
 """, unsafe_allow_html=True)
 # ----------------------------
