@@ -16,7 +16,18 @@ st.set_page_config(
     page_icon="🪙",
     layout="centered"
 )
+st.markdown("""
+<style>
+/* 上のメニュー（Forkとか）消す */
+header {visibility: hidden;}
 
+/* 下の「Hosted with Streamlit」消す */
+footer {visibility: hidden;}
+
+/* 右下のロゴ消す */
+.stDeployButton {display:none;}
+</style>
+""", unsafe_allow_html=True)
 # ----------------------------
 # データ取得
 # ----------------------------
