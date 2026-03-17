@@ -243,10 +243,6 @@ if analyze_button:
 
     st.write(ai_result)
 
-    with st.expander("今回の入力内容を見る"):
-        st.write(f"投資期間: {period}")
-        st.write(f"価格感覚: {price_view}")
-        st.write(f"インフレ見通し: {inflation}")
 # =========================
 # プラチナチャート
 # =========================
@@ -341,12 +337,24 @@ oil = yf.download("CL=F", period="1mo", interval="1d", progress=False)
 sp500 = yf.download("^GSPC", period="1mo", interval="1d", progress=False)
 dxy = yf.download("DX-Y.NYB", period="1mo", interval="1d", progress=False)
 
-gold_price = float(gold["Close"].dropna().iloc[-1])
-silver_price = float(silver["Close"].dropna().iloc[-1])
-platinum_price = float(platinum["Close"].dropna().iloc[-1])
-oil_price = float(oil["Close"].dropna().iloc[-1])
-sp500_price = float(sp500["Close"].dropna().iloc[-1])
-dxy_price = float(dxy["Close"].dropna().iloc[-1])
+def safe_get_price(df, name):
+    try:
+        if df is not None and not df.empty and "Close" in df.columns:
+            return float(df["Close"].dropna().iloc[-1])
+        else:
+            st.warning(f"{name}データ取得失敗")
+            return None
+    except:
+        st.warning(f"{name}データエラー")
+        return None
+
+
+gold_price = safe_get_price(gold, "Gold")
+silver_price = safe_get_price(silver, "Silver")
+platinum_price = safe_get_price(platinum, "Platinum")
+oil_price = safe_get_price(oil, "Oil")
+sp500_price = safe_get_price(sp500, "SP500")
+dxy_price = safe_get_price(dxy, "DXY")
 
 # =========================
 # 市場データ表示
