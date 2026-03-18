@@ -378,21 +378,23 @@ dxy_price = safe_get_price(dxy, "DXY")
 # =========================
 # 市場データ表示
 # =========================
-
+def safe_metric(col, label, price, symbol="$"):
+    if price is None:
+        col.metric(label, "取得失敗")
+    else:
+        col.metric(label, f"{symbol}{price:.2f}")
 st.markdown("---")
 st.header("市場データ")
 
 col1, col2, col3 = st.columns(3)
-
-col1.metric("Gold", f"${gold_price:.2f}")
-col2.metric("Silver", f"${silver_price:.2f}")
-col3.metric("Platinum", f"${platinum_price:.2f}")
+safe_metric(col1, "Gold", gold_price)
+safe_metric(col2, "Silver", silver_price)
+safe_metric(col3, "Platinum", platinum_price)
 
 col1, col2, col3 = st.columns(3)
-
-col1.metric("Oil", f"${oil_price:.2f}")
-col2.metric("S&P500", f"{sp500_price:.0f}")
-col3.metric("Dollar Index", f"{dxy_price:.2f}")
+safe_metric(col1, "Oil", oil_price)
+safe_metric(col2, "S&P500", sp500_price, "")
+safe_metric(col3, "Dollar Index", dxy_price, "")
 
 # =========================
 # レシオ計算
