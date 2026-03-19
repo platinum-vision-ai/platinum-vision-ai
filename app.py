@@ -6,8 +6,7 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import feedparser
+
 # ----------------------------
 # ページ設定
 # ----------------------------
@@ -16,6 +15,7 @@ st.set_page_config(
     page_icon="🪙",
     layout="centered"
 )
+
 st.markdown("""
 <style>
 
@@ -36,6 +36,7 @@ iframe {display: none !important;}
 
 </style>
 """, unsafe_allow_html=True)
+
 # ----------------------------
 # データ取得
 # ----------------------------
@@ -77,25 +78,7 @@ def get_usdjpy_from_alphavantage(timeout_sec: int = 20):
         return float(rate) if rate else None
     except Exception:
         return None
-def get_market_news():
 
-    urls = [
-        "https://news.google.com/rss/search?q=gold+price",
-        "https://news.google.com/rss/search?q=platinum+market",
-        "https://news.google.com/rss/search?q=oil+price",
-        "https://news.google.com/rss/search?q=fed+inflation"
-    ]
-
-    news_list = []
-
-    for url in urls:
-
-        feed = feedparser.parse(url)
-
-        for entry in feed.entries[:2]:
-            news_list.append(entry.title)
-
-    return news_list
 
 # ----------------------------
 # ロジック
@@ -134,7 +117,7 @@ def get_cycle_message(cycle: str) -> tuple[str, str]:
         )
 
 
-def get_ai_analysis(pt_price, usdjpy, pt_jpy_per_oz, cycle, news):
+def get_ai_analysis(pt_price, usdjpy, pt_jpy_per_oz, cycle):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return "OPENAI_API_KEY が未設定のため、AI分析を表示できません。"
@@ -185,6 +168,78 @@ def get_ai_analysis(pt_price, usdjpy, pt_jpy_per_oz, cycle, news):
         return f"AI分析の取得中にエラーが発生しました: {e}"
 
 
+def load_pt_chart_1mo():
+    try:
+        pt_chart = yf.download(
+            "PL=F",
+            period="1mo",
+            interval="1d",
+            progress=False,
+            auto_adjust=False
+        )
+
+        if pt_chart is None or pt_chart.empty:
+            return None
+
+        if isinstance(pt_chart.columns, pd.MultiIndex):
+            pt_chart.columns = pt_chart.columns.get_level_values(0)
+
+        if "Close" not in pt_chart.columns:
+            return None
+
+        pt_chart = pt_chart.dropna(subset=["Close"]).copy()
+        return pt_chart
+
+    except Exception:
+        return None
+
+
+def render_pt_chart(pt_chart: pd.DataFrame):
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=pt_chart.index,
+            y=pt_chart["Close"],
+            mode="lines+markers",
+            name="Platinum",
+            line=dict(color="#00FF88", width=3),
+            marker=dict(size=5),
+            hovertemplate="日付: %{x|%Y-%m-%d}<br>価格: $%{y:.2f}<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=500,
+        margin=dict(l=10, r=10, t=20, b=10),
+        hovermode="x unified",
+        showlegend=False,
+        dragmode=False,
+        xaxis=dict(
+            title="",
+            fixedrange=True,
+            showgrid=False
+        ),
+        yaxis=dict(
+            title="USD / oz",
+            tickformat=".0f",
+            fixedrange=True,
+            range=[1500, 3000]
+        ),
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "displayModeBar": False,
+            "scrollZoom": False,
+            "doubleClick": False
+        }
+    )
+
+
 # ----------------------------
 # UI
 # ----------------------------
@@ -214,9 +269,7 @@ if analyze_button:
     with st.spinner("市場データを取得しています..."):
         pt_price = get_pt_usd_per_oz()
         usdjpy = get_usdjpy_from_alphavantage()
-  # ニュース取得
-        news = get_market_news()
-        news_text = "\n".join(news)      
+
     if pt_price is None:
         st.error("プラチナ価格の取得に失敗しました。しばらくして再度お試しください。")
         st.stop()
@@ -247,7 +300,6 @@ if analyze_button:
     st.write(msg1)
     st.write(msg2)
 
-
     st.markdown("---")
     st.markdown("## AI分析")
 
@@ -256,195 +308,21 @@ if analyze_button:
             pt_price=pt_price,
             usdjpy=usdjpy,
             pt_jpy_per_oz=pt_jpy_per_oz,
-            cycle=cycle,
-            news=news_text
+            cycle=cycle
         )
 
     st.write(ai_result)
 
-# =========================
-# プラチナチャート
-# =========================
-
+# ----------------------------
+# プラチナチャート（1ヶ月固定）
+# ----------------------------
 st.markdown("---")
 st.header("プラチナ価格チャート (USD/oz)")
+st.caption("1ヶ月表示")
 
-
-# -------------------------
-# チャート期間選択
-# -------------------------
-
-period_option = st.selectbox(
-    "チャート期間",
-    ["1ヶ月", "3ヶ月", "6ヶ月", "1年"]
-)
-
-period_map = {
-    "1ヶ月": "1mo",
-    "3ヶ月": "3mo",
-    "6ヶ月": "6mo",
-    "1年": "1y"
-}
-
-selected_period = period_map[period_option]
-
-
-# -------------------------
-# データ取得
-# -------------------------
-
-pt_chart = yf.download(
-    "PL=F",
-    period=selected_period,
-    interval="1d",
-    progress=False
-)
+pt_chart = load_pt_chart_1mo()
 
 if pt_chart is None or pt_chart.empty:
     st.warning("チャートデータ取得失敗")
-
 else:
-
-    # MultiIndex対策
-    if isinstance(pt_chart.columns, pd.MultiIndex):
-        pt_chart.columns = pt_chart.columns.get_level_values(0)
-
-    # -------------------------
-    # チャート作成
-    # -------------------------
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Scatter(
-            x=pt_chart.index,
-            y=pt_chart["Close"],
-            mode="lines",
-            name="Platinum",
-            line=dict(
-                color="#00FF88",
-                width=3
-            )
-        )
-    )
-
-    # -------------------------
-    # レイアウト
-    # -------------------------
-
-    fig.update_layout(
-        template="plotly_dark",
-        height=500,
-        xaxis_title="Date",
-        yaxis_title="USD / oz",
-        hovermode="x unified",
-        yaxis=dict(
-            tickmode="linear",
-            dtick=100
-        )
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-# =========================
-# 市場データ取得
-# =========================
-
-gold = yf.download("GC=F", period="1mo", interval="1d", progress=False)
-silver = yf.download("SI=F", period="1mo", interval="1d", progress=False)
-platinum = yf.download("PL=F", period="1mo", interval="1d", progress=False)
-oil = yf.download("CL=F", period="1mo", interval="1d", progress=False)
-sp500 = yf.download("^GSPC", period="1mo", interval="1d", progress=False)
-dxy = yf.download("DX-Y.NYB", period="1mo", interval="1d", progress=False)
-
-def safe_get_price(df, name):
-    try:
-        if df is not None and not df.empty and "Close" in df.columns:
-            return float(df["Close"].dropna().iloc[-1])
-        else:
-            st.warning(f"{name}データ取得失敗")
-            return None
-    except:
-        st.warning(f"{name}データエラー")
-        return None
-
-
-gold_price = safe_get_price(gold, "Gold")
-silver_price = safe_get_price(silver, "Silver")
-platinum_price = safe_get_price(platinum, "Platinum")
-oil_price = safe_get_price(oil, "Oil")
-sp500_price = safe_get_price(sp500, "SP500")
-dxy_price = safe_get_price(dxy, "DXY")
-
-# =========================
-# 市場データ表示
-# =========================
-def safe_metric(col, label, price, symbol="$"):
-    if price is None:
-        col.metric(label, "取得失敗")
-    else:
-        col.metric(label, f"{symbol}{price:.2f}")
-st.markdown("---")
-st.header("市場データ")
-
-col1, col2, col3 = st.columns(3)
-safe_metric(col1, "Gold", gold_price)
-safe_metric(col2, "Silver", silver_price)
-safe_metric(col3, "Platinum", platinum_price)
-
-col1, col2, col3 = st.columns(3)
-safe_metric(col1, "Oil", oil_price)
-safe_metric(col2, "S&P500", sp500_price, "")
-safe_metric(col3, "Dollar Index", dxy_price, "")
-
-# =========================
-# レシオ計算
-# =========================
-
-gold_platinum_ratio = gold_price / platinum_price
-gold_silver_ratio = gold_price / silver_price
-
-st.markdown("---")
-st.header("レシオ分析")
-
-col1, col2 = st.columns(2)
-
-col1.metric("Gold / Platinum", f"{gold_platinum_ratio:.2f}")
-col2.metric("Gold / Silver", f"{gold_silver_ratio:.2f}")
-
-# =========================
-# レシオチャート
-# =========================
-
-st.markdown("---")
-st.header("Gold / Platinum Ratio Chart")
-
-ratio_df = pd.DataFrame()
-ratio_df["Gold"] = gold["Close"]
-ratio_df["Platinum"] = platinum["Close"]
-
-ratio_df["Ratio"] = ratio_df["Gold"] / ratio_df["Platinum"]
-
-fig_ratio = go.Figure()
-
-fig_ratio.add_trace(
-    go.Scatter(
-        x=ratio_df.index,
-        y=ratio_df["Ratio"],
-        mode="lines",
-        name="Gold / Platinum",
-        line=dict(
-            color="#FFD700",
-            width=3
-        )
-    )
-)
-
-fig_ratio.update_layout(
-    template="plotly_dark",
-    height=500,
-    xaxis_title="Date",
-    yaxis_title="Ratio",
-    hovermode="x unified"
-)
-
-st.plotly_chart(fig_ratio, use_container_width=True)
+    render_pt_chart(pt_chart)
