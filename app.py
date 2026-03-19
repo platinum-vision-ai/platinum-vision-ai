@@ -31,6 +31,11 @@ footer {visibility: hidden;}
 [data-testid="stStatusWidget"] {display: none;}
 [data-testid="stDeployButton"] {display: none;}
 
+ /* 🔥 アンカーリンク（🔗）消す */
+a[href^="#"] {
+    display: none !important;
+}
+                       
 /* 右下の「Hosted with Streamlit」完全消去 */
 iframe {display: none !important;}
 
