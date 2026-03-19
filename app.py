@@ -205,7 +205,7 @@ def render_pt_chart(pt_chart: pd.DataFrame):
             name="Platinum",
             line=dict(color="#00FF88", width=3),
             marker=dict(size=5),
-            hovertemplate="日付: %{x|%Y-%m-%d}<br>価格: $%{y:.2f}<extra></extra>",
+            hovertemplate="%{y:.0f}",
         )
     )
 
