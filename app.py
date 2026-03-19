@@ -262,10 +262,28 @@ inflation = st.selectbox(
     "インフレ見通し",
     ["続く", "落ち着く", "不明"]
 )
+# 🔥 回数制限（軽い制限）
+if "count" not in st.session_state:
+    st.session_state.count = 0
 
-analyze_button = st.button("AI分析を開始", use_container_width=True)
+limit = 3
+
+# 🔥 ボタン制御
+analyze_button = st.button(
+    "AI分析を開始",
+    use_container_width=True,
+    disabled=st.session_state.count >= limit
+)
+
+# 🔥 残り回数表示
+st.caption(f"本日あと {limit - st.session_state.count} 回使えます")
+
+# 🔥 制限表示
+if st.session_state.count >= limit:
+    st.warning(f"本日は{limit}回までです🙏")
 
 if analyze_button:
+    st.session_state.count += 1
     with st.spinner("市場データを取得しています..."):
         pt_price = get_pt_usd_per_oz()
         usdjpy = get_usdjpy_from_alphavantage()
