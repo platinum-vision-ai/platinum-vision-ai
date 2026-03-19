@@ -318,7 +318,6 @@ if analyze_button:
 # ----------------------------
 st.markdown("---")
 st.header("プラチナ価格チャート (USD/oz)")
-st.caption("1ヶ月表示")
 
 pt_chart = load_pt_chart_1mo()
 
