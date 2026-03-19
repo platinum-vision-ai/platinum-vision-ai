@@ -205,7 +205,7 @@ def render_pt_chart(pt_chart: pd.DataFrame):
             name="Platinum",
             line=dict(color="#00FF88", width=3),
             marker=dict(size=5),
-            hovertemplate="%{y:.0f}",
+            hovertemplate="価格: $%{y:.0f}",
         )
     )
 
@@ -322,7 +322,17 @@ st.caption("1ヶ月表示")
 
 pt_chart = load_pt_chart_1mo()
 
-if pt_chart is None or pt_chart.empty:
-    st.warning("チャートデータ取得失敗")
-else:
+if pt_chart is not None and not pt_chart.empty:
+    latest_date = pt_chart.index[-1]
+    latest_price = pt_chart["Close"].iloc[-1]
+
+    st.markdown(f"""
+### 📊 現在の価格
+日付: {latest_date.strftime('%Y-%m-%d')}  
+価格: ${latest_price:.2f}
+""")
+
     render_pt_chart(pt_chart)
+
+else:
+    st.warning("チャートデータ取得失敗")
