@@ -1,6 +1,5 @@
 import os
 import time
-import requests
 import yfinance as yf
 import streamlit as st
 from openai import OpenAI
@@ -63,25 +62,11 @@ def get_pt_usd_per_oz(max_retries: int = 3, sleep_sec: float = 1.0):
     return None
 
 
-def get_usdjpy_from_alphavantage(timeout_sec: int = 20):
-    key = os.getenv("ALPHAVANTAGE_KEY")
-    if not key:
-        return None
-
-    url = "https://www.alphavantage.co/query"
-    params = {
-        "function": "CURRENCY_EXCHANGE_RATE",
-        "from_currency": "USD",
-        "to_currency": "JPY",
-        "apikey": key,
-    }
-
+def get_usdjpy():
     try:
-        r = requests.get(url, params=params, timeout=timeout_sec)
-        data = r.json()
-        rate = data.get("Realtime Currency Exchange Rate", {}).get("5. Exchange Rate")
-        return float(rate) if rate else None
-    except Exception:
+        df = yf.Ticker("JPY=X").history(period="1d")
+        return float(df["Close"].iloc[-1])
+    except:
         return None
 
 
@@ -464,7 +449,7 @@ if analyze_button:
 
     with st.spinner("市場データとニュースを取得しています..."):
         pt_price = get_pt_usd_per_oz()
-        usdjpy = get_usdjpy_from_alphavantage()
+        usdjpy = get_usdjpy()
         headlines = get_news_headlines()
         news_text = build_news_summary_text(headlines)
         macro_context = get_macro_market_context()
